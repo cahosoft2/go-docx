@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -48,6 +47,9 @@ type Document struct {
 
 	filePlaceholders map[string][]*Placeholder
 	fileReplacers    map[string]*Replacer
+
+	Fh *os.File
+	Rc *zip.ReadCloser
 }
 
 // Open will open and parse the file pointed to by path.
@@ -62,8 +64,10 @@ func Open(path string) (*Document, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to open zip reader: %s", err)
 	}
+	//defer fh.Close()
+	//	defer rc.Close()
 
-	return newDocument(&rc.Reader, path, fh)
+	return newDocument2(&rc.Reader, path, fh, rc)
 }
 
 // OpenBytes allows to create a Document from a byte slice.
@@ -85,6 +89,54 @@ func OpenBytes(b []byte) (*Document, error) {
 // newDocument will parse the docx archive and ValidatePositions that at least a 'document.xml' exists.
 // If 'word/document.xml' is missing, an error is returned since the docx cannot be correct.
 // Then all files are parsed for their runs before returning the new document.
+
+func newDocument2(zipFile *zip.Reader, path string, docxFile *os.File, rc *zip.ReadCloser) (*Document, error) {
+	doc := &Document{
+		docxFile:         docxFile,
+		zipFile:          zipFile,
+		path:             path,
+		files:            make(FileMap),
+		runParsers:       make(map[string]*RunParser),
+		filePlaceholders: make(map[string][]*Placeholder),
+		fileReplacers:    make(map[string]*Replacer),
+		Fh:               docxFile,
+		Rc:               rc,
+	}
+
+	ResetRunIdCounter()
+	ResetFragmentIdCounter()
+
+	if err := doc.parseArchive(); err != nil {
+		return nil, fmt.Errorf("error parsing document: %s", err)
+	}
+
+	// a valid docx document should really contain a document.xml :)
+	if _, exists := doc.files[DocumentXml]; !exists {
+		return nil, fmt.Errorf("invalid docx archive, %s is missing", DocumentXml)
+	}
+
+	// parse all files
+	for name, data := range doc.files {
+
+		// find all runs
+		doc.runParsers[name] = NewRunParser(data)
+		err := doc.runParsers[name].Execute()
+		if err != nil {
+			return nil, err
+		}
+
+		// parse placeholders and initialize replacers
+		placeholder, err := ParsePlaceholders(doc.runParsers[name].Runs(), data)
+		if err != nil {
+			return nil, err
+		}
+		doc.filePlaceholders[name] = placeholder
+		doc.fileReplacers[name] = NewReplacer(data, placeholder)
+	}
+
+	return doc, nil
+}
+
 func newDocument(zipFile *zip.Reader, path string, docxFile *os.File) (*Document, error) {
 	doc := &Document{
 		docxFile:         docxFile,
@@ -168,7 +220,7 @@ func (d *Document) GetPlaceHoldersList() ([]string, error) {
 	for file := range d.files {
 		if _, ok := d.runParsers[file]; !ok {
 			return nil, fmt.Errorf("no parser for file %s", file)
-		}		
+		}
 		replacer := d.fileReplacers[file]
 		placeholders := replacer.placeholders
 		for _, placeholder := range placeholders {
@@ -178,6 +230,7 @@ func (d *Document) GetPlaceHoldersList() ([]string, error) {
 
 	return placeholdersTextList, nil
 }
+
 // replace will create a parser on the given bytes, execute it and replace every placeholders found with the data
 // from the placeholderMap.
 func (d *Document) replace(placeholderMap PlaceholderMap, file string) ([]byte, error) {
@@ -301,7 +354,7 @@ func (d *Document) parseArchive() error {
 			return nil
 		}
 		defer readCloser.Close()
-		fileBytes, err := ioutil.ReadAll(readCloser)
+		fileBytes, err := io.ReadAll(readCloser)
 		if err != nil {
 			return nil
 		}
@@ -420,6 +473,27 @@ func (d *Document) Close() {
 			log.Println(err)
 		}
 	}
+}
+
+func (d *Document) Closed() error {
+	if d.docxFile != nil {
+		err := d.docxFile.Close()
+		fmt.Println("cerrando archivo")
+		if err != nil {
+			return err
+		}
+		if d.docxFile != nil {
+			fmt.Println("no se pudo cerrar")
+
+		}
+	}
+
+	if d.zipFile != nil {
+
+		fmt.Println("zipFile abierto")
+
+	}
+	return nil
 }
 
 // FileMap is just a convenience type for the map of fileName => fileBytes

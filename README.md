@@ -2,9 +2,9 @@
 
 <p align="center">
 
-[![tests](https://github.com/lukasjarosch/go-docx/workflows/test/badge.svg)](https://github.com/lukasjarosch/go-docx/actions?query=workflow%3Atest)
-[![goreport](https://goreportcard.com/badge/github.com/lukasjarosch/go-docx)](https://goreportcard.com/report/github.com/lukasjarosch/go-docx)
-[![GoDoc reference ](https://img.shields.io/badge/godoc-reference-blue.svg)](https://pkg.go.dev/github.com/lukasjarosch/go-docx)
+[![tests](https://github.com/cahosoft2/go-docx/workflows/test/badge.svg)](https://github.com/cahosoft2/go-docx/actions?query=workflow%3Atest)
+[![goreport](https://goreportcard.com/badge/github.com/cahosoft2/go-docx)](https://goreportcard.com/report/github.com/cahosoft2/go-docx)
+[![GoDoc reference ](https://img.shields.io/badge/godoc-reference-blue.svg)](https://pkg.go.dev/github.com/cahosoft2/go-docx)
 
 </p>
 
@@ -18,7 +18,7 @@
 
 
 <p align="center">
-  <img src="https://github.com/lukasjarosch/go-docx/blob/refactoring/screenshot.png" alt="Example" width="900" />
+  <img src="https://github.com/cahosoft2/go-docx/blob/refactoring/screenshot.png" alt="Example" width="900" />
 </p>
 
 
@@ -47,7 +47,7 @@ The placeholder may then be in two fragments for example `{the-` and `placeholde
 The naive approach therefore is not always working. To provide a way to replace placeholders, even if they are fragmented, is the purpose of this library.
 
 ### ➤ Getting Started
-All you need is to `go get github.com/lukasjarosch/go-docx`
+All you need is to `go get github.com/cahosoft2/go-docx`
 
 ```go
 func main() {
@@ -196,4 +196,4 @@ where the most debugging happened (gosh, so many offsets). The given explanation
 to grasp the concept, leaving out the messy bits.
 
 ### ➤ License
-This software is licensed under the [MIT license](https://github.com/lukasjarosch/go-docx/blob/develop/LICENSE).
+This software is licensed under the [MIT license](https://github.com/cahosoft2/go-docx/blob/develop/LICENSE).
